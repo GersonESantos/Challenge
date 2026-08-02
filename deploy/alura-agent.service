@@ -1,0 +1,16 @@
+[Unit]
+Description=Alura Agent Flask app
+After=network.target
+
+[Service]
+Type=simple
+User=opc
+Group=opc
+WorkingDirectory=/opt/alura-agent/Challenge/src
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/opt/alura-agent/Challenge/.venv/bin/gunicorn -w 2 -b 127.0.0.1:8000 main:app
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

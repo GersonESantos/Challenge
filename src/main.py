@@ -1,61 +1,85 @@
-"""
-main.py
-
-Ponto de entrada do projeto Alura Agent.
-
-Fluxo desta etapa:
-1. Pede ao usuário um texto de referência (que pode ser parte ou o
-   conteúdo inteiro de um dos PDFs).
-2. Varre a pasta "pdf/" e seleciona apenas os PDFs cujo conteúdo
-   contém esse texto.
-3. Processa (extrai texto + divide em chunks) somente os PDFs
-   selecionados.
-
-Nas próximas etapas do desafio, este arquivo evoluirá para:
-- gerar embeddings dos chunks
-- indexar os chunks para busca
-- receber perguntas do usuário e responder usando o conteúdo do PDF
-"""
+from __future__ import annotations
 
 from pathlib import Path
 
-from document_loader import selecionar_pdfs_por_texto, processar_pdf
+from flask import Flask, render_template, request
 
-# Pasta onde ficam os PDFs (C:\Repo2026\Challenge\pdf)
-PASTA_PDFS = Path(__file__).resolve().parent.parent / "pdf"
+from document_loader import Chunk, processar_pdf, selecionar_pdfs_por_texto
 
 
-def main():
-    texto_busca = input(
-        "Digite um trecho (ou o conteúdo inteiro) de um dos PDFs para selecioná-lo: "
-    ).strip()
+BASE_DIR = Path(__file__).resolve().parent.parent
+PASTA_PDFS = BASE_DIR / "pdf"
 
-    if not texto_busca:
-        print("Nenhum texto informado. Encerrando.")
-        return
+app = Flask(__name__, template_folder=str(BASE_DIR / "templates"))
 
-    print(f"\nBuscando PDFs em '{PASTA_PDFS}' que contenham o texto informado...\n")
 
-    pdfs_selecionados = selecionar_pdfs_por_texto(str(PASTA_PDFS), texto_busca)
+def resumir_chunk(chunk: Chunk, limite: int = 300) -> str:
+    texto = chunk.texto.strip()
+    if len(texto) <= limite:
+        return texto
+    return f"{texto[:limite].rstrip()}..."
 
-    if not pdfs_selecionados:
-        print("Nenhum PDF encontrado com esse texto.")
-        return
 
-    print(f"{len(pdfs_selecionados)} PDF(s) selecionado(s):")
-    for pdf in pdfs_selecionados:
-        print(f" - {pdf.name}")
+@app.get("/")
+def index():
+    pdfs = sorted(pasta_pdf.name for pasta_pdf in PASTA_PDFS.glob("*.pdf"))
+    return render_template("index.html", pdfs=pdfs, selecionados=None, chunks=None, erro=None)
 
-    for pdf in pdfs_selecionados:
-        print(f"\n=== Processando: {pdf.name} ===")
-        chunks = processar_pdf(str(pdf))
-        print(f"Total de chunks gerados: {len(chunks)}")
 
-        print("Prévia dos primeiros chunks:")
-        for chunk in chunks[:3]:
-            print(f"\n--- Chunk {chunk.id} (página {chunk.pagina}) ---")
-            print(chunk.texto[:300])
+@app.post("/processar")
+def processar():
+    pdfs = sorted(pasta_pdf.name for pasta_pdf in PASTA_PDFS.glob("*.pdf"))
+    texto_busca = request.form.get("texto_busca", "").strip()
+    arquivo_existente = request.form.get("arquivo_existente", "").strip()
+    upload = request.files.get("pdf_upload")
+
+    arquivos_selecionados: list[Path] = []
+    erro = None
+
+    if upload and upload.filename:
+        destino = PASTA_PDFS / Path(upload.filename).name
+        destino.parent.mkdir(parents=True, exist_ok=True)
+        upload.save(destino)
+        arquivos_selecionados = [destino]
+    elif arquivo_existente:
+        arquivo = PASTA_PDFS / arquivo_existente
+        if arquivo.exists():
+            arquivos_selecionados = [arquivo]
+        else:
+            erro = "O PDF selecionado não foi encontrado na pasta pdf/."
+    elif texto_busca:
+        arquivos_selecionados = selecionar_pdfs_por_texto(PASTA_PDFS, texto_busca)
+        if not arquivos_selecionados:
+            erro = "Nenhum PDF encontrado com esse texto."
+    else:
+        erro = "Envie um PDF, escolha um arquivo existente ou informe um texto de busca."
+
+    chunks_por_arquivo: list[dict[str, object]] = []
+    for pdf_path in arquivos_selecionados:
+        chunks = processar_pdf(pdf_path)
+        chunks_por_arquivo.append(
+            {
+                "nome": pdf_path.name,
+                "total": len(chunks),
+                "chunks": [
+                    {
+                        "id": chunk.id,
+                        "pagina": chunk.pagina,
+                        "texto": resumir_chunk(chunk),
+                    }
+                    for chunk in chunks[:5]
+                ],
+            }
+        )
+
+    return render_template(
+        "index.html",
+        pdfs=pdfs,
+        selecionados=chunks_por_arquivo,
+        chunks=chunks_por_arquivo,
+        erro=erro,
+    )
 
 
 if __name__ == "__main__":
-    main()
+    app.run(host="0.0.0.0", port=5000, debug=True)

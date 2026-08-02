@@ -4,15 +4,19 @@
 
 Agente de IA para responder perguntas sobre documentos internos de uma empresa.
 
+Agora o projeto roda como uma aplicação web Flask, pronta para publicação em uma instância Oracle Compute.
+
 ## Estrutura do projeto
 
 ```
 Challenge/
 ├── pdf/
 │   └── documento.pdf        <- coloque aqui o PDF escolhido
+├── templates/
+│   └── index.html           <- interface web
 ├── src/
 │   ├── document_loader.py   <- lê e processa o PDF (etapa 1 do desafio)
-│   └── main.py               <- ponto de entrada do programa
+│   └── main.py              <- servidor Flask
 ├── requirements.txt
 └── README.md
 ```
@@ -44,8 +48,56 @@ Challenge/
    python main.py
    ```
 
-   Você deve ver quantos chunks foram gerados e uma prévia do conteúdo
-   extraído do PDF.
+   Abra `http://127.0.0.1:5000` no navegador. Você pode enviar um PDF, escolher um arquivo da pasta `pdf/` ou buscar por um trecho do conteúdo.
+
+## Deploy na Oracle Cloud
+
+1. Crie uma Compute Instance na região `sa-saopaulo-1`.
+2. Libere as portas `22` (SSH), `80` (HTTP) e, se quiser testar direto, `5000`.
+3. Copie o projeto para a máquina virtual.
+4. Instale Python 3, crie um ambiente virtual e instale as dependências:
+   ```
+   python3 -m venv .venv
+   source .venv/bin/activate
+   pip install -r requirements.txt
+   ```
+5. Inicie o app com Gunicorn a partir da pasta `src`:
+   ```
+   cd src
+   gunicorn -w 2 -b 127.0.0.1:8000 main:app
+   ```
+6. Configure o Nginx como proxy reverso para `127.0.0.1:8000` e use o Nginx para servir a interface web na porta 80.
+
+Os arquivos prontos ficam em:
+- [deploy/alura-agent.service](deploy/alura-agent.service)
+- [deploy/nginx.conf](deploy/nginx.conf)
+
+Fluxo típico na VM:
+1. Copie o projeto para `/opt/alura-agent/Challenge`.
+2. Crie o venv em `/opt/alura-agent/Challenge/.venv`.
+3. Copie [deploy/alura-agent.service](deploy/alura-agent.service) para `/etc/systemd/system/alura-agent.service`.
+4. Copie [deploy/nginx.conf](deploy/nginx.conf) para a configuração do site no Nginx.
+5. Se existir um site padrão do Nginx na porta 80, desative-o para evitar conflito:
+   ```
+   sudo rm -f /etc/nginx/conf.d/default.conf
+   ```
+6. Rode `sudo systemctl daemon-reload && sudo systemctl enable --now alura-agent`.
+
+Exemplo de bloco `server` do Nginx:
+```nginx
+server {
+    listen 80;
+   server_name 147.15.28.10;
+
+    location / {
+        proxy_pass http://127.0.0.1:8000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+```
 
 ## Próximas etapas do desafio
 
