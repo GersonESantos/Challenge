@@ -1,6 +1,6 @@
-# Alura Agent - Processador e Visualizador de Chunks de PDF
+# Alura Agent - Análise Inteligente de Notas Fiscais com Gemini 3.6 Flash
 
-Interface web desenvolvida em **Flask** para ingestão, fragmentação (chunking), busca textual e visualização de dados extraídos de documentos PDF.
+Interface web desenvolvida em **Flask** para ingestão, fragmentação (chunking), busca textual e **análise analítica contábil/fiscal de documentos PDF (DANFEs/NF-e)** utilizando o modelo de IA **Google Gemini 3.6 Flash**.
 
 O aplicativo está hospedado e em execução em uma instância na **Oracle Cloud Infrastructure (OCI)**:
 🌐 **Acesso online:** [http://147.15.87.131](http://147.15.87.131)
@@ -17,17 +17,22 @@ O aplicativo está hospedado e em execução em uma instância na **Oracle Cloud
 
 ## 🚀 Funcionalidades
 
+- **Consultas Analíticas com Gemini AI:** Responda perguntas complexas sobre as notas fiscais (ex: *"qual o total de vendas por mês/ano?"*, *"quais os produtos faturados?"*, *"qual o total de impostos e fretes?"*, *"quem são os maiores clientes?"*) utilizando o modelo `gemini-3.6-flash`.
 - **Upload de Documentos:** Envio de novos arquivos `.pdf` diretamente pela interface web para o servidor.
-- **Seleção de Arquivos Existentes:** Listagem e processamento sob demanda dos PDFs já armazenados no diretório `pdf/`.
+- **Seleção e Escopo Flexível:** Consulta analítica em todas as notas fiscais disponíveis ou em documentos específicos.
 - **Busca por Conteúdo:** Filtragem automática de documentos baseada em termos específicos (ex: nome, CPF, etc.).
 - **Processamento e Chunking:** Segmentação dos PDFs em chunks estruturados, extraindo metadados como identificador (`id`), página e resumo de texto.
+- **Renderização Rica em Markdown:** Apresentação de tabelas comparativas, métricas contábeis e destaque de valores com opção de cópia rápida.
 
 ---
 
 ## 🛠️ Tecnologias Utilizadas
 
 - **Python 3.11+**
+- **Google GenAI SDK (`google-genai`)** - Modelo `gemini-3.6-flash`
 - **Flask** (Framework Web)
+- **pypdf** (Extração e leitura de PDFs)
+- **python-dotenv** (Gerenciamento de variáveis de ambiente)
 - **Gunicorn** (WSGI HTTP Server)
 - **Nginx** (Reverse Proxy na porta 80)
 - **Oracle Cloud Infrastructure (OCI)** (Hospedagem da VM)
@@ -43,10 +48,12 @@ Challenge/
 │   └── IMGb.png           # Captura dos chunks processados
 ├── pdf/                   # Diretório de armazenamento dos documentos PDF
 ├── src/
-│   ├── main.py            # Aplicação principal Flask e rotas
-│   └── document_loader.py # Lógica de extração, segmentação e filtros
+│   ├── main.py            # Aplicação principal Flask e rotas (/ e /analisar)
+│   ├── gemini_analyzer.py # Serviço de integração analítica com Gemini 3.6 Flash
+│   └── document_loader.py # Lógica de extração, segmentação e filtros de PDFs
 ├── templates/
-│   └── index.html         # Interface HTML (Jinja2)
+│   └── index.html         # Interface HTML (Jinja2 + marked.js)
+├── .env                   # Chave de API do Gemini (GEMINI_API_KEY)
 ├── requirements.txt       # Dependências do projeto
 ├── start.sh               # Script de inicialização em produção
 └── README.md
@@ -58,7 +65,7 @@ Challenge/
 
 1. **Clone o repositório:**
    ```bash
-   git clone [https://github.com/GersonESantos/Challenge.git](https://github.com/GersonESantos/Challenge.git)
+   git clone https://github.com/GersonESantos/Challenge.git
    cd Challenge
    ```
 
@@ -71,20 +78,26 @@ Challenge/
    venv\Scripts\activate
    ```
 
-3. **Instale as dependências:**
+3. **Configure a chave de API do Gemini no `.env`:**
+   Crie um arquivo `.env` na raiz do projeto:
+   ```env
+   GEMINI_API_KEY=sua_chave_aqui
+   ```
+
+4. **Instale as dependências:**
    ```bash
    pip install --upgrade pip
    pip install -r requirements.txt
    ```
 
-4. **Execute o servidor de desenvolvimento:**
+5. **Execute o servidor de desenvolvimento:**
    ```bash
    python src/main.py
    ```
 
-5. **Acesse no navegador:**
+6. **Acesse no navegador:**
    ```text
-   [http://127.0.0.1:5000](http://127.0.0.1:5000)
+   http://127.0.0.1:5000
    ```
 
 ---

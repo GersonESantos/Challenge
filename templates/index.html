@@ -3,178 +3,595 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Alura Agent</title>
+    <title>Alura Agent - Análise de Notas Fiscais com Gemini</title>
+    <!-- Marked.js for fast client-side markdown rendering -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <style>
       :root {
         color-scheme: light;
-        --bg: #f4efe7;
-        --panel: #fffaf3;
-        --text: #1f1a17;
-        --muted: #6f6258;
-        --accent: #8a4f2b;
-        --accent-2: #b86a35;
-        --border: #e3d7ca;
-        --shadow: 0 18px 45px rgba(53, 31, 18, 0.12);
+        --bg: #f5f0e8;
+        --panel: #fffbf5;
+        --panel-glass: rgba(255, 251, 245, 0.92);
+        --text: #1d1815;
+        --text-sub: #544941;
+        --muted: #786c62;
+        --accent: #8b4a26;
+        --accent-2: #c06931;
+        --accent-light: #fbeee4;
+        --accent-hover: #72391b;
+        --border: #e2d5c5;
+        --border-focus: #c06931;
+        --shadow: 0 18px 45px rgba(53, 31, 18, 0.08);
+        --shadow-sm: 0 4px 14px rgba(53, 31, 18, 0.05);
+        --radius-lg: 20px;
+        --radius-md: 14px;
+        --radius-sm: 8px;
+        --success: #2e7d32;
+        --success-bg: #e8f5e9;
       }
 
-      * { box-sizing: border-box; }
+      * {
+        box-sizing: border-box;
+      }
 
       body {
         margin: 0;
-        font-family: Georgia, "Times New Roman", serif;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
         background:
-          radial-gradient(circle at top left, rgba(184, 106, 53, 0.18), transparent 28%),
-          linear-gradient(180deg, #fcf7f0 0%, var(--bg) 100%);
+          radial-gradient(circle at 10% 10%, rgba(192, 105, 49, 0.12), transparent 35%),
+          radial-gradient(circle at 90% 90%, rgba(139, 74, 38, 0.08), transparent 30%),
+          linear-gradient(180deg, #fdfaf6 0%, var(--bg) 100%);
         color: var(--text);
+        min-height: 100vh;
+        line-height: 1.5;
       }
 
       .wrap {
-        max-width: 1100px;
+        max-width: 1180px;
         margin: 0 auto;
-        padding: 32px 20px 56px;
+        padding: 36px 20px 64px;
       }
 
-      .hero {
-        display: grid;
-        gap: 14px;
-        margin-bottom: 22px;
+      header.hero {
+        margin-bottom: 28px;
+      }
+
+      .badge-ai {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: var(--accent-light);
+        color: var(--accent);
+        font-size: 0.82rem;
+        font-weight: 700;
+        letter-spacing: 0.03em;
+        text-transform: uppercase;
+        padding: 5px 12px;
+        border-radius: 999px;
+        border: 1px solid rgba(192, 105, 49, 0.25);
+        margin-bottom: 12px;
       }
 
       h1 {
-        margin: 0;
-        font-size: clamp(2.2rem, 5vw, 4.6rem);
-        line-height: 0.95;
-        letter-spacing: -0.04em;
+        margin: 0 0 8px;
+        font-family: Georgia, "Times New Roman", serif;
+        font-size: clamp(2rem, 4.5vw, 3.4rem);
+        line-height: 1.05;
+        letter-spacing: -0.03em;
+        color: #17120e;
       }
 
       .subtitle {
-        max-width: 68ch;
+        max-width: 76ch;
         margin: 0;
-        color: var(--muted);
-        font-size: 1.05rem;
+        color: var(--text-sub);
+        font-size: 1.02rem;
       }
 
-      .grid {
+      .grid-main {
         display: grid;
-        grid-template-columns: 1.05fr 0.95fr;
-        gap: 18px;
+        grid-template-columns: 1.15fr 0.85fr;
+        gap: 22px;
+        margin-bottom: 24px;
       }
 
       .card {
-        background: rgba(255, 250, 243, 0.88);
+        background: var(--panel-glass);
+        backdrop-filter: blur(12px);
         border: 1px solid var(--border);
-        border-radius: 22px;
-        padding: 22px;
+        border-radius: var(--radius-lg);
+        padding: 24px;
         box-shadow: var(--shadow);
       }
 
-      .card h2 {
-        margin: 0 0 14px;
-        font-size: 1.15rem;
+      .card-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 18px;
+        padding-bottom: 12px;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .card-header h2 {
+        margin: 0;
+        font-family: Georgia, "Times New Roman", serif;
+        font-size: 1.35rem;
+        color: #241b16;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .badge-count {
+        background: var(--accent-light);
+        color: var(--accent);
+        font-size: 0.8rem;
+        font-weight: 700;
+        padding: 3px 9px;
+        border-radius: 999px;
       }
 
       label {
         display: block;
-        margin: 14px 0 8px;
-        font-weight: 700;
+        margin: 14px 0 6px;
+        font-size: 0.92rem;
+        font-weight: 600;
+        color: var(--text);
       }
 
       input[type="text"],
       select,
+      textarea,
       input[type="file"] {
         width: 100%;
-        border-radius: 14px;
+        border-radius: var(--radius-md);
         border: 1px solid var(--border);
         padding: 12px 14px;
         font: inherit;
-        background: #fff;
+        font-size: 0.95rem;
+        background: #ffffff;
+        color: var(--text);
+        transition: border-color 0.2s, box-shadow 0.2s;
+      }
+
+      input[type="text"]:focus,
+      select:focus,
+      textarea:focus {
+        outline: none;
+        border-color: var(--border-focus);
+        box-shadow: 0 0 0 3px rgba(192, 105, 49, 0.15);
+      }
+
+      textarea {
+        resize: vertical;
+        min-height: 84px;
+      }
+
+      .quick-chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 10px;
+      }
+
+      .chip-btn {
+        background: #ffffff;
+        border: 1px solid var(--border);
+        color: var(--text-sub);
+        padding: 6px 12px;
+        border-radius: 999px;
+        font-size: 0.82rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+      }
+
+      .chip-btn:hover {
+        background: var(--accent-light);
+        color: var(--accent);
+        border-color: var(--accent-2);
+        transform: translateY(-1px);
       }
 
       .actions {
         display: flex;
         gap: 12px;
         flex-wrap: wrap;
-        margin-top: 16px;
+        margin-top: 20px;
+        align-items: center;
       }
 
-      button {
+      button.btn-primary {
         border: 0;
         border-radius: 999px;
-        padding: 12px 18px;
+        padding: 12px 24px;
         font: inherit;
+        font-size: 0.95rem;
         font-weight: 700;
         cursor: pointer;
         background: linear-gradient(135deg, var(--accent), var(--accent-2));
         color: white;
+        box-shadow: 0 4px 12px rgba(139, 74, 38, 0.25);
+        transition: all 0.2s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
       }
 
-      .ghost {
+      button.btn-primary:hover:not(:disabled) {
+        background: linear-gradient(135deg, var(--accent-hover), var(--accent));
+        box-shadow: 0 6px 16px rgba(139, 74, 38, 0.35);
+        transform: translateY(-1px);
+      }
+
+      button.btn-primary:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+
+      button.ghost {
         background: transparent;
-        color: var(--accent);
+        color: var(--text-sub);
         border: 1px solid var(--border);
+        border-radius: 999px;
+        padding: 12px 18px;
+        font: inherit;
+        font-size: 0.95rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s ease;
+      }
+
+      button.ghost:hover {
+        background: #fdf6ed;
+        color: var(--accent);
       }
 
       .notice {
         margin-top: 14px;
-        padding: 12px 14px;
-        border-radius: 14px;
+        padding: 12px 16px;
+        border-radius: var(--radius-md);
         background: #fff1e8;
         color: #8a3d18;
         border: 1px solid #f0ceb8;
+        font-size: 0.92rem;
+      }
+
+      .notice-success {
+        background: var(--success-bg);
+        color: var(--success);
+        border-color: #c8e6c9;
       }
 
       .list {
         display: grid;
-        gap: 12px;
+        gap: 10px;
+        max-height: 480px;
+        overflow-y: auto;
+        padding-right: 4px;
       }
 
-      .pdf-item,
-      .chunk {
+      .pdf-item {
         border: 1px solid var(--border);
-        border-radius: 18px;
-        padding: 14px;
-        background: white;
+        border-radius: var(--radius-md);
+        padding: 12px 14px;
+        background: #ffffff;
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+        transition: border-color 0.2s;
       }
 
-      .pdf-item strong,
-      .chunk strong {
-        display: block;
-        margin-bottom: 6px;
+      .pdf-item:hover {
+        border-color: var(--accent-2);
+      }
+
+      .pdf-item strong {
+        font-size: 0.92rem;
+        word-break: break-all;
       }
 
       .meta {
         color: var(--muted);
-        font-size: 0.92rem;
+        font-size: 0.84rem;
       }
 
+      /* AI Analysis Result Section */
+      .ai-result-section {
+        margin-top: 24px;
+      }
+
+      .ai-result-card {
+        background: #ffffff;
+        border: 2px solid rgba(192, 105, 49, 0.35);
+        border-radius: var(--radius-lg);
+        padding: 28px;
+        box-shadow: 0 20px 48px rgba(53, 31, 18, 0.1);
+      }
+
+      .ai-result-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-bottom: 20px;
+        padding-bottom: 16px;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .ai-model-tag {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: linear-gradient(135deg, #2b1f1a, #433328);
+        color: #f7e6d7;
+        font-family: monospace;
+        font-size: 0.85rem;
+        padding: 5px 12px;
+        border-radius: 999px;
+      }
+
+      .markdown-body {
+        color: #221c18;
+        font-size: 0.98rem;
+        line-height: 1.65;
+      }
+
+      .markdown-body h1,
+      .markdown-body h2,
+      .markdown-body h3,
+      .markdown-body h4 {
+        color: #1a130f;
+        font-family: Georgia, "Times New Roman", serif;
+        margin-top: 1.4em;
+        margin-bottom: 0.6em;
+      }
+
+      .markdown-body h1 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: 6px; }
+      .markdown-body h2 { font-size: 1.3rem; }
+      .markdown-body h3 { font-size: 1.15rem; color: var(--accent); }
+
+      .markdown-body table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 16px 0;
+        font-size: 0.92rem;
+        background: #fffcf8;
+        border-radius: var(--radius-sm);
+        overflow: hidden;
+        border: 1px solid var(--border);
+      }
+
+      .markdown-body th,
+      .markdown-body td {
+        padding: 10px 14px;
+        text-align: left;
+        border: 1px solid var(--border);
+      }
+
+      .markdown-body th {
+        background: #f7ede2;
+        font-weight: 700;
+        color: #2b1d14;
+      }
+
+      .markdown-body tr:nth-child(even) {
+        background: #faf6f0;
+      }
+
+      .markdown-body ul,
+      .markdown-body ol {
+        padding-left: 22px;
+        margin: 10px 0;
+      }
+
+      .markdown-body li {
+        margin-bottom: 6px;
+      }
+
+      .markdown-body strong {
+        color: #17110e;
+      }
+
+      .markdown-body blockquote {
+        margin: 14px 0;
+        padding: 10px 18px;
+        border-left: 4px solid var(--accent);
+        background: var(--accent-light);
+        color: var(--accent-hover);
+        border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+      }
+
+      /* Spinner */
+      .spinner {
+        display: none;
+        width: 18px;
+        height: 18px;
+        border: 2px solid rgba(255, 255, 255, 0.4);
+        border-top-color: #ffffff;
+        border-radius: 50%;
+        animation: spin 0.7s linear infinite;
+      }
+
+      @keyframes spin {
+        to { transform: rotate(360deg); }
+      }
+
+      .loading-active .spinner {
+        display: inline-block;
+      }
+
+      /* Chunks Section */
       .chunk-grid {
         display: grid;
         gap: 10px;
         margin-top: 10px;
       }
 
+      .chunk {
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        padding: 10px 12px;
+        background: #fdfbf7;
+        font-size: 0.88rem;
+      }
+
+      .chunk strong {
+        display: block;
+        margin-bottom: 4px;
+        color: var(--accent);
+      }
+
       @media (max-width: 900px) {
-        .grid { grid-template-columns: 1fr; }
+        .grid-main {
+          grid-template-columns: 1fr;
+        }
       }
     </style>
   </head>
   <body>
     <div class="wrap">
-      <div class="hero">
-        <h1>Alura Agent</h1>
+      <header class="hero">
+        <div class="badge-ai">⚡ Gemini 3.6 Flash &middot; Análise Inteligente de DANFEs</div>
+        <h1>Alura Agent &middot; Análise de Notas Fiscais</h1>
         <p class="subtitle">
-          Interface web para enviar PDFs, selecionar documentos existentes ou buscar por um trecho do conteúdo e visualizar os chunks gerados.
+          Consulte e extraia inteligência financeira de notas fiscais eletrônicas (DANFEs/PDFs) utilizando IA generativa para responder perguntas analíticas sobre vendas, impostos, faturamento e clientes.
         </p>
-      </div>
+      </header>
 
-      <div class="grid">
+      <!-- SECTION: ANALISAR COM GEMINI -->
+      <section class="card" style="margin-bottom: 24px; border: 2px solid rgba(192, 105, 49, 0.4);">
+        <div class="card-header">
+          <h2>🤖 Perguntas Analíticas com Gemini AI</h2>
+          <span class="badge-ai" style="margin: 0;">gemini-3.6-flash</span>
+        </div>
+
+        <form id="form-analise" action="/analisar" method="post">
+          <label for="pergunta_ia">O que você gostaria de analisar nas notas fiscais?</label>
+          <textarea
+            id="pergunta_ia"
+            name="pergunta"
+            placeholder="Exemplo: Qual o total de vendas por mês/ano? Apresente o valor total consolidado e detalhamento dos produtos."
+            required
+          >{{ analise_resultado.pergunta if analise_resultado else '' }}</textarea>
+
+          <!-- Quick chips -->
+          <div style="margin-top: 8px;">
+            <span style="font-size: 0.82rem; font-weight: 600; color: var(--muted);">Perguntas sugeridas:</span>
+            <div class="quick-chips">
+              <button
+                type="button"
+                class="chip-btn"
+                data-query="Qual o total de vendas no mês/ano? Apresente o consolidado por período e o valor total geral."
+              >
+                📊 Total de vendas no mês/ano
+              </button>
+              <button
+                type="button"
+                class="chip-btn"
+                data-query="Quais foram todos os produtos vendidos, quantidades faturadas e seus valores unitários e totais?"
+              >
+                📦 Produtos e quantidades
+              </button>
+              <button
+                type="button"
+                class="chip-btn"
+                data-query="Qual o total de tributos recolhidos (ICMS, IPI) e custos de frete cobrados nas notas fiscais?"
+              >
+                💰 Impostos e Frete
+              </button>
+              <button
+                type="button"
+                class="chip-btn"
+                data-query="Quem são os clientes/destinatários das notas e qual o valor gasto por cada um?"
+              >
+                👥 Clientes e Destinatários
+              </button>
+              <button
+                type="button"
+                class="chip-btn"
+                data-query="Faça uma auditoria contábil completa das notas fiscais, verificando se há inconsistências ou anomalias nos totais."
+              >
+                🔍 Auditoria e Auditoria Geral
+              </button>
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 14px;">
+            <div>
+              <label for="arquivo_analise">Escopo dos Documentos</label>
+              <select id="arquivo_analise" name="arquivo_analise">
+                <option value="">Todas as notas fiscais disponíveis ({{ pdfs|length }} arquivo(s))</option>
+                {% for pdf in pdfs %}
+                <option value="{{ pdf }}">{{ pdf }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div>
+              <label for="modelo_select">Modelo de IA</label>
+              <select id="modelo_select" name="modelo">
+                <option value="gemini-3.6-flash" selected>Google Gemini 3.6 Flash (Recomendado)</option>
+                <option value="gemini-2.5-flash">Google Gemini 2.5 Flash</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="actions">
+            <button id="btn-analisar" type="submit" class="btn-primary">
+              <span class="spinner" id="analise-spinner"></span>
+              <span id="btn-analisar-texto">Consultar Gemini AI</span>
+            </button>
+            <button type="button" class="ghost" onclick="document.getElementById('pergunta_ia').value = '';">Limpar Pergunta</button>
+          </div>
+        </form>
+
+        <div id="analise-erro-dinamico" class="notice" style="display: none;"></div>
+
+        <!-- AI RESPONSE CONTAINER -->
+        <div id="container-resposta-ia" class="ai-result-section" style="display: {% if analise_resultado and analise_resultado.sucesso %}block{% else %}none{% endif %};">
+          <div class="ai-result-card">
+            <div class="ai-result-header">
+              <div>
+                <strong style="font-size: 1.1rem; color: var(--text);">Resultado da Análise</strong>
+                <div class="meta" id="resumo-documentos">
+                  {% if analise_resultado and analise_resultado.sucesso %}
+                    {{ analise_resultado.total_documentos }} documento(s) auditado(s)
+                  {% endif %}
+                </div>
+              </div>
+              <div style="display: flex; gap: 10px; align-items: center;">
+                <span class="ai-model-tag" id="tag-modelo-ia">
+                  {{ analise_resultado.modelo if analise_resultado else 'gemini-3.6-flash' }}
+                </span>
+                <button type="button" class="ghost" style="padding: 6px 14px; font-size: 0.85rem;" onclick="copiarResposta()">
+                  📋 Copiar
+                </button>
+              </div>
+            </div>
+
+            <!-- RAW & RENDERED MARKDOWN -->
+            <div id="raw-markdown-content" style="display: none;">{{ analise_resultado.resposta if analise_resultado else '' }}</div>
+            <div id="rendered-markdown-output" class="markdown-body"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SECTION: INGESTÃO E GESTÃO DE PDFS -->
+      <div class="grid-main">
         <section class="card">
-          <h2>Processar PDF</h2>
+          <div class="card-header">
+            <h2>📄 Processar ou Enviar PDF</h2>
+          </div>
           <form action="/processar" method="post" enctype="multipart/form-data">
-            <label for="pdf_upload">Enviar novo PDF</label>
+            <label for="pdf_upload">Enviar novo arquivo PDF</label>
             <input id="pdf_upload" name="pdf_upload" type="file" accept="application/pdf" />
 
-            <label for="arquivo_existente">Ou escolher um PDF já salvo em pdf/</label>
+            <label for="arquivo_existente">Ou escolher um PDF existente</label>
             <select id="arquivo_existente" name="arquivo_existente">
               <option value="">Selecione um arquivo</option>
               {% for pdf in pdfs %}
@@ -182,11 +599,11 @@
               {% endfor %}
             </select>
 
-            <label for="texto_busca">Ou buscar por trecho do texto</label>
-            <input id="texto_busca" name="texto_busca" type="text" placeholder="Ex.: GABRIELA ou CPF" />
+            <label for="texto_busca">Ou buscar PDFs por palavra-chave</label>
+            <input id="texto_busca" name="texto_busca" type="text" placeholder="Ex.: GABRIELA, FAST SHOP, 722316..." />
 
             <div class="actions">
-              <button type="submit">Processar</button>
+              <button type="submit" class="btn-primary">Processar Chunks</button>
               <button class="ghost" type="reset">Limpar</button>
             </div>
           </form>
@@ -197,28 +614,34 @@
         </section>
 
         <section class="card">
-          <h2>PDFs disponíveis</h2>
+          <div class="card-header">
+            <h2>📁 Notas Fiscais em pdf/</h2>
+            <span class="badge-count">{{ pdfs|length }}</span>
+          </div>
           <div class="list">
             {% if pdfs %}
               {% for pdf in pdfs %}
               <div class="pdf-item">
                 <strong>{{ pdf }}</strong>
-                <div class="meta">Arquivo encontrado em pdf/</div>
+                <div class="meta">Pronto para leitura e análise com Gemini</div>
               </div>
               {% endfor %}
             {% else %}
               <div class="pdf-item">
                 <strong>Nenhum PDF encontrado</strong>
-                <div class="meta">Coloque arquivos .pdf na pasta pdf/ ou envie um arquivo pelo formulário.</div>
+                <div class="meta">Envie arquivos .pdf ou coloque-os na pasta pdf/.</div>
               </div>
             {% endif %}
           </div>
         </section>
       </div>
 
+      <!-- SECTION: CHUNKS PROCESSADOS -->
       {% if chunks %}
       <section class="card" style="margin-top: 18px;">
-        <h2>Resultado</h2>
+        <div class="card-header">
+          <h2>📑 Chunks Extraídos dos Documentos</h2>
+        </div>
         <div class="list">
           {% for arquivo in chunks %}
           <div class="pdf-item">
@@ -227,7 +650,7 @@
             <div class="chunk-grid">
               {% for chunk in arquivo.chunks %}
               <div class="chunk">
-                <strong>Chunk {{ chunk.id }} - página {{ chunk.pagina }}</strong>
+                <strong>Chunk #{{ chunk.id }} &middot; Página {{ chunk.pagina }}</strong>
                 <div>{{ chunk.texto }}</div>
               </div>
               {% endfor %}
@@ -238,5 +661,108 @@
       </section>
       {% endif %}
     </div>
+
+    <!-- SCRIPT FOR ASYNC GEMINI INTERACTION AND MARKDOWN RENDERING -->
+    <script>
+      // Render Initial Markdown if already present from server-side render
+      document.addEventListener("DOMContentLoaded", function() {
+        const rawContent = document.getElementById("raw-markdown-content");
+        const renderedOutput = document.getElementById("rendered-markdown-output");
+        if (rawContent && rawContent.textContent.trim() && window.marked) {
+          renderedOutput.innerHTML = marked.parse(rawContent.textContent);
+        }
+      });
+
+      // Quick Chips Handler
+      document.querySelectorAll(".chip-btn").forEach(function(btn) {
+        btn.addEventListener("click", function() {
+          const query = this.getAttribute("data-query");
+          const textarea = document.getElementById("pergunta_ia");
+          textarea.value = query;
+          textarea.focus();
+        });
+      });
+
+      // Async Form Submission for Gemini Analysis
+      const formAnalise = document.getElementById("form-analise");
+      const btnAnalisar = document.getElementById("btn-analisar");
+      const btnTexto = document.getElementById("btn-analisar-texto");
+      const spinner = document.getElementById("analise-spinner");
+      const containerResposta = document.getElementById("container-resposta-ia");
+      const renderedOutput = document.getElementById("rendered-markdown-output");
+      const rawContent = document.getElementById("raw-markdown-content");
+      const tagModelo = document.getElementById("tag-modelo-ia");
+      const resumoDocs = document.getElementById("resumo-documentos");
+      const erroDinamico = document.getElementById("analise-erro-dinamico");
+
+      formAnalise.addEventListener("submit", async function(e) {
+        e.preventDefault();
+
+        const pergunta = document.getElementById("pergunta_ia").value.trim();
+        const arquivo = document.getElementById("arquivo_analise").value;
+        const modelo = document.getElementById("modelo_select").value;
+
+        if (!pergunta) return;
+
+        // Set Loading State
+        btnAnalisar.disabled = true;
+        btnAnalisar.classList.add("loading-active");
+        btnTexto.textContent = "Analisando com Gemini...";
+        erroDinamico.style.display = "none";
+
+        try {
+          const response = await fetch("/analisar", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Accept": "application/json",
+            },
+            body: JSON.stringify({
+              pergunta: pergunta,
+              arquivo: arquivo,
+              modelo: modelo,
+            }),
+          });
+
+          const data = await response.json();
+
+          if (!response.ok || !data.sucesso) {
+            throw new Error(data.erro || "Falha ao processar a análise.");
+          }
+
+          // Populate Result
+          rawContent.textContent = data.resposta;
+          if (window.marked) {
+            renderedOutput.innerHTML = marked.parse(data.resposta);
+          } else {
+            renderedOutput.innerText = data.resposta;
+          }
+
+          tagModelo.textContent = data.modelo || "gemini-3.6-flash";
+          resumoDocs.textContent = `${data.total_documentos} documento(s) consultado(s)`;
+          containerResposta.style.display = "block";
+          containerResposta.scrollIntoView({ behavior: "smooth", block: "start" });
+
+        } catch (err) {
+          erroDinamico.textContent = err.message || "Erro na consulta ao Gemini.";
+          erroDinamico.style.display = "block";
+        } finally {
+          btnAnalisar.disabled = false;
+          btnAnalisar.classList.remove("loading-active");
+          btnTexto.textContent = "Consultar Gemini AI";
+        }
+      });
+
+      // Copy response to clipboard
+      function copiarResposta() {
+        const text = rawContent.textContent || renderedOutput.innerText;
+        if (!text) return;
+        navigator.clipboard.writeText(text).then(function() {
+          alert("Resposta copiada para a área de transferência!");
+        }).catch(function() {
+          alert("Não foi possível copiar.");
+        });
+      }
+    </script>
   </body>
 </html>
